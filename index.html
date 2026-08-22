@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Discord Clone - Perfil Personalizado</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        body { display: flex; height: 100vh; background: #36393f; color: #dcddde; overflow: hidden; }
+
+        /* Login Screen */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #2f3136; display: flex; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .login-box { background: #36393f; padding: 30px; border-radius: 8px; width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-align: center; }
+        .login-box h2 { color: white; margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 4px; border: none; background: #202225; color: white; outline: none; }
+        .login-box button { width: 100%; padding: 10px; border-radius: 4px; border: none; background: #5865F2; color: white; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .login-box button:hover { background: #4752c4; }
+
+        #app-container { display: none; width: 100%; height: 100%; display: flex; }
+
+        /* Servers Sidebar */
+        .servers-sidebar { width: 72px; background: #202225; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
+        .server-icon { width: 48px; height: 48px; background: #36393f; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; }
+        .server-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .server-icon:hover, .server-icon.active { border-radius: 16px; background: #5865F2; }
+        .server-add { color: #3ba55d; font-size: 24px; }
+        .server-add:hover { background: #3ba55d; color: white; border-radius: 16px; }
+        .server-separator { width: 32px; height: 2px; background: #36393f; border-radius: 1px; margin: 4px 0; }
+
+        /* Channels Sidebar */
+        .channels-sidebar { width: 240px; background: #2f3136; display: flex; flex-direction: column; }
+        .server-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-weight: bold; color: white; border-bottom: 2px solid #202225; }
+        .channels-list { flex-grow: 1; padding: 16px 8px; overflow-y: auto; }
+        .channel-category { font-size: 12px; font-weight: bold; color: #8e9297; margin-bottom: 8px; padding-left: 8px; text-transform: uppercase; }
+        .channel-btn { width: 100%; padding: 8px 10px; background: transparent; border: none; color: #8e9297; text-align: left; border-radius: 4px; cursor: pointer; font-size: 15px; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
+        .channel-btn:hover, .channel-btn.active { background: #34373c; color: white; }
+
+        /* Controls Panel */
+        .controls-panel { padding: 8px; background: #292b2f; display: flex; flex-direction: column; gap: 6px; }
+        .control-row { display: flex; gap: 6px; }
+        .control-btn { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #4f545c; color: white; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .control-btn:hover { background: #686d73; }
+        .control-btn.active-red { background: #ed4245; }
+        .control-btn.active-green { background: #3ba55d; color: white; }
+
+        /* User Profile */
+        .user-profile { height: 52px; background: #292b2f; display: flex; align-items: center; padding: 0 8px; border-top: 1px solid #202225; }
+        .user-avatar { width: 32px; height: 32px; background: #5865F2; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; margin-right: 8px; flex-shrink: 0; overflow: hidden; }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-name-container { display: flex; flex-direction: column; overflow: hidden; }
+        .user-display-name { font-size: 14px; font-weight: bold; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-username { font-size: 11px; color: #b9bbbe; }
+        .settings-gear { margin-left: auto; cursor: pointer; color: #b9bbbe; font-size: 18px; padding: 4px; border-radius: 4px; }
+        .settings-gear:hover { color: white; background: rgba(255,255,255,0.1); }
+
+        /* Main Chat Area */
+        .main-area { flex-grow: 1; display: flex; flex-direction: column; background: #36393f; }
+        .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; gap: 20px; font-weight: bold; color: white; border-bottom: 2px solid #2f3136; }
+        
+        .friends-nav { display: flex; gap: 15px; align-items: center; }
+        .friend-tab { background: transparent; border: none; color: #8e9297; font-size: 14px; font-weight: bold; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+        .friend-tab:hover, .friend-tab.active { background: rgba(255,255,255,0.1); color: white; }
+        .friend-tab.add-tab { background: #248046; color: white; }
+        .friend-tab.add-tab:hover { background: #1a6335; }
+
+        .content-body { flex-grow: 1; display: flex; flex-direction: column; padding: 16px; overflow: hidden; gap: 10px; position: relative; }
+        
+        /* Video Grid */
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; max-height: 55vh; overflow-y: auto; }
+        .video-container { position: relative; background: #111; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; min-height: 200px; border: 1px solid #202225; }
+        .video-container video { width: 100%; height: 100%; object-fit: contain; }
+        .video-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+
+        /* Chat Box & Messages */
+        #chat-box { flex-grow: 1; overflow-y: auto; background: #36393f; padding: 10px; border-radius: 5px; display: flex; flex-direction: column; gap: 4px; }
+        .message-group { display: flex; gap: 16px; margin-top: 16px; padding: 2px 16px; }
+        .message-group:hover { background: rgba(4, 4, 5, 0.07); }
+        .message-avatar { width: 40px; height: 40px; border-radius: 50%; background: #5865F2; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; flex-shrink: 0; overflow: hidden; }
+        .message-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .message-content-wrapper { display: flex; flex-direction: column; width: 100%; }
+        .message-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+        .message-username { font-weight: 500; color: white; font-size: 15px; }
+        .message-timestamp { font-size: 12px; color: #72767d; }
+        .message-text { color: #dcddde; font-size: 15px; line-height: 1.375rem; word-break: break-word; }
+        .message-text code { background: #2f3136; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+
+        #typing-indicator { height: 24px; padding-left: 16px; font-size: 12px; color: #b9bbbe; font-style: italic; display: none; }
+        .chat-input-wrapper { padding: 0 16px 16px 16px; }
+        input[type="text"] { width: 100%; padding: 11px 16px; border-radius: 8px; border: none; background: #40444b; color: white; font-size: 15px; outline: none; }
+
+        .friends-list-container { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        .friend-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-top: 1px solid #4f545c; cursor: pointer; border-radius: 4px; }
+        .friend-item:hover { background: rgba(255,255,255,0.05); }
+        .friend-info { display: flex; align-items: center; gap: 12px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .status-online { background: #3ba55d; }
+        .status-offline { background: #747f8d; }
+
+        /* Modals */
+        .custom-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 3000; }
+        .custom-modal-box { background: #313338; padding: 24px; border-radius: 8px; width: 440px; box-shadow: 0 8px 16px rgba(0,0,0,0.25); }
+        .source-list { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; }
+        .source-item { background: #40444b; padding: 10px; border-radius: 6px; cursor: pointer; text-align: center; width: 160px; }
+        .source-item:hover { background: #5865F2; }
+        .source-item img { width: 140px; height: 90px; object-fit: cover; border-radius: 4px; }
+
+        /* Settings Modal (Discord Style) */
+        #settings-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #313338; z-index: 4000; }
+        .settings-container { display: flex; width: 100%; height: 100%; }
+        .settings-sidebar-nav { width: 230px; background: #2b2d31; padding: 60px 20px 20px 60px; display: flex; flex-direction: column; gap: 6px; }
+        .settings-nav-title { font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; margin-bottom: 6px; }
+        .settings-nav-item { padding: 10px; border-radius: 4px; color: #b5bac1; font-weight: 500; cursor: pointer; background: transparent; border: none; text-align: left; font-size: 16px; }
+        .settings-nav-item:hover { background: rgba(255,255,255,0.05); color: #dbdee1; }
+        .settings-nav-item.active { background: rgba(255,255,255,0.1); color: white; }
+        .settings-nav-item.danger { color: #ed4245; }
+        .settings-content { flex-grow: 1; padding: 60px 40px; background: #313338; max-width: 950px; position: relative; overflow-y: auto; }
+        .settings-close-btn { position: absolute; top: 60px; right: 40px; border: 2px solid #b5bac1; border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #b5bac1; font-weight: bold; }
+        .settings-close-btn:hover { border-color: white; color: white; }
+
+        /* Discord Profile Preview Card in Settings */
+        .settings-profile-layout { display: flex; gap: 40px; align-items: flex-start; }
+        .settings-form-column { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
+        .settings-form-group label { display: block; font-size: 12px; font-weight: bold; text-transform: uppercase; color: #b5bac1; margin-bottom: 8px; }
+        .settings-form-group input, .settings-form-group textarea { width: 100%; padding: 10px; border-radius: 4px; background: #1e1f22; border: none; color: white; outline: none; font-size: 14px; }
+        .settings-form-group textarea { resize: none; height: 80px; }
+        
+        .discord-profile-preview { width: 300px; background: #111214; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
+        .preview-banner { height: 100px; background: #5865F2; }
+        .preview-body { padding: 0 16px 16px 16px; position: relative; }
+        .preview-avatar-wrapper { position: absolute; top: -40px; left: 16px; width: 80px; height: 80px; border-radius: 50%; border: 6px solid #111214; background: #5865F2; display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; color: white; overflow: hidden; }
+        .preview-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-content { margin-top: 45px; background: #232428; border-radius: 8px; padding: 12px; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Entrar no Discord Clone</h2>
+            <input type="text" id="username-input" placeholder="Nome de usuário">
+            <input type="password" id="password-input" placeholder="Senha">
+            <button onclick="login()">Entrar</button>
+            <button onclick="register()" style="background: #4f545c; margin-top: 10px;">Criar Conta</button>
+            <p id="auth-msg" style="color: #ed4245; margin-top: 10px; font-size: 13px;"></p>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div id="app-container">
+        <div class="servers-sidebar" id="servers-container">
+            <div class="server-icon active" title="Amigos" onclick="openFriendsView()">👥</div>
+            <div class="server-separator"></div>
+            <div class="server-icon server-add" title="Adicionar ou Criar Servidor" onclick="openServerOptionsModal()">+</div>
+        </div>
+
+        <div class="channels-sidebar">
+            <div class="server-header" id="server-title">
+                <span id="server-title-text">Amigos</span>
+                <span id="invite-btn-container" style="display: none; cursor: pointer; font-size: 14px; background: #5865F2; padding: 4px 8px; border-radius: 4px; color: white;" onclick="openInviteModal()">Convidar</span>
+            </div>
+            <div class="channels-list" id="sidebar-channels">
+                <button class="channel-btn active" onclick="openFriendsView()">👥 Amigos</button>
+            </div>
+
+            <div class="controls-panel">
+                <button class="control-btn" id="btn-voice">🔊 Conectar Voz</button>
+                <div class="control-row">
+                    <button class="control-btn" id="btn-screen">Transmitir</button>
+                    <button class="control-btn active-red" id="btn-disconnect-voice" style="display: none;" onclick="disconnectVoice()">Sair</button>
+                </div>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar" id="user-avatar-icon">U</div>
+                <div class="user-name-container">
+                    <div class="user-display-name" id="display-user">Usuário</div>
+                    <div class="user-username" id="display-username-small">@usuario</div>
+                </div>
+                <div class="settings-gear" onclick="openSettingsModal()" title="Configurações de Usuário">⚙️</div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="chat-header" id="main-header">
+                <div class="friends-nav">
+                    <span style="font-weight: bold; color: white; border-right: 1px solid #4f545c; padding-right: 15px;">👥 Amigos</span>
+                    <button class="friend-tab active" onclick="filterFriends('online', this)">Online</button>
+                    <button class="friend-tab" onclick="filterFriends('all', this)">Todos</button>
+                    <button class="friend-tab" onclick="filterFriends('pending', this)">Pendentes</button>
+                    <button class="friend-tab add-tab" onclick="filterFriends('add', this)">Adicionar Amigo</button>
+                </div>
+            </div>
+            
+            <div class="content-body">
+                <div class="video-grid" id="video-grid"></div>
+                <div id="chat-box"></div>
+                <div id="typing-indicator"></div>
+            </div>
+
+            <div class="chat-input-wrapper">
+                <input type="text" id="chat-input" placeholder="Mensagem">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals de Servidores e Convites -->
+    <div id="server-options-modal" class="custom-modal-overlay">
+        <div class="custom-modal-box" style="text-align: center;">
+            <h3 style="color: white; font-size: 24px; margin-bottom: 8px;">Criar um servidor</h3>
+            <p style="color: #b5bac1; font-size: 14px; margin-bottom: 20px;">Seu servidor é onde você e seus amigos conversam.</p>
+            <button onclick="openCreateServerModal()" style="width: 100%; padding: 12px; background: #5865F2; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">Criar Meu Servidor</button>
+            <button onclick="openJoinServerModal()" style="width: 100%; padding: 12px; background: #4e5058; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Entrar com Convite</button>
+            <button onclick="closeServerOptionsModal()" style="background: transparent; border: none; color: white; margin-top: 15px; cursor: pointer;">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="create-server-modal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <h3 style="color: white; text-align: center; font-size: 24px; margin-bottom: 8px;">Personalize seu servidor</h3>
+            <label style="color: #b5bac1; font-size: 12px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 8px;">Nome do Servidor</label>
+            <input type="text" id="modal-server-name-input" placeholder="Servidor" style="width: 100%; padding: 10px; border-radius: 3px; background: #1e1f22; border: none; color: white; font-size: 16px; margin-bottom: 30px; outline: none;">
+            <div style="background: #2b2d31; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; margin: -24px -24px -24px -24px;">
+                <button onclick="closeCreateServerModal()" style="background: transparent; border: none; color: white; font-weight: 500; cursor: pointer;">Voltar</button>
+                <button onclick="confirmCreateServer()" style="background: #5865F2; border: none; color: white; font-weight: 500; padding: 10px 24px; border-radius: 3px; cursor: pointer;">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="join-server-modal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <h3 style="color: white; text-align: center; font-size: 24px; margin-bottom: 8px;">Entrar em um Servidor</h3>
+            <input type="text" id="modal-invite-input" placeholder="Código de Convite (ex: AB34XY)" style="width: 100%; padding: 10px; border-radius: 3px; background: #1e1f22; border: none; color: white; font-size: 16px; margin-bottom: 30px; outline: none;">
+            <div style="background: #2b2d31; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; margin: -24px -24px -24px -24px;">
+                <button onclick="closeJoinServerModal()" style="background: transparent; border: none; color: white; font-weight: 500; cursor: pointer;">Voltar</button>
+                <button onclick="confirmJoinServer()" style="background: #5865F2; border: none; color: white; font-weight: 500; padding: 10px 24px; border-radius: 3px; cursor: pointer;">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="invite-modal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <h3 style="color: white; text-align: center; font-size: 22px; margin-bottom: 8px;">Convidar amigos</h3>
+            <input type="text" id="server-invite-code-display" readonly style="width: 100%; padding: 12px; background: #1e1f22; border: none; color: #5865F2; font-weight: bold; font-size: 18px; text-align: center; border-radius: 4px; margin-bottom: 20px;">
+            <button onclick="closeInviteModal()" style="width: 100%; background: #5865F2; border: none; color: white; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer;">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal">
+        <div class="settings-container">
+            <div class="settings-sidebar-nav">
+                <div class="settings-nav-title">Configurações de Usuário</div>
+                <button class="settings-nav-item active" onclick="switchSettingsTab('account', this)">Minha Conta</button>
+                <button class="settings-nav-item" onclick="switchSettingsTab('profile', this)">Perfil</button>
+                <div class="settings-nav-title" style="margin-top: 20px;">Aplicativo</div>
+                <button class="settings-nav-item danger" onclick="logout()">Sair da Conta</button>
+            </div>
+            <div class="settings-content">
+                <div class="settings-close-btn" onclick="closeSettingsModal()">✕</div>
+                
+                <!-- TAB MINHA CONTA -->
+                <div id="settings-tab-account" class="settings-tab-pane">
+                    <h2 style="color: white; margin-bottom: 20px;">Minha Conta</h2>
+                    <div style="background: #2b2d31; padding: 20px; border-radius: 8px; display: flex; align-items: center; gap: 20px;">
+                        <div id="settings-avatar-preview" style="width: 80px; height: 80px; background: #5865F2; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; color: white; overflow: hidden;">U</div>
+                        <div>
+                            <h3 id="settings-username-display" style="color: white; font-size: 20px;">Usuário</h3>
+                            <p style="color: #949ba4; font-size: 14px; margin-top: 4px;">Conta ativa e salva no navegador.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB PERFIL -->
+                <div id="settings-tab-profile" class="settings-tab-pane" style="display: none;">
+                    <h2 style="color: white; margin-bottom: 20px;">Personalização de Perfil</h2>
+                    <div class="settings-profile-layout">
+                        <div class="settings-form-column">
+                            <div class="settings-form-group">
+                                <label>Nome de Exibição</label>
+                                <input type="text" id="input-display-name" placeholder="Como você quer ser chamado">
+                            </div>
+                            <div class="settings-form-group">
+                                <label>URL do Avatar (Foto de Perfil)</label>
+                                <input type="text" id="input-avatar-url" placeholder="https://exemplo.com/foto.png" oninput="updateProfilePreview()">
+                            </div>
+                            <div class="settings-form-group">
+                                <label>Cor do Banner / Destaque</label>
+                                <input type="color" id="input-accent-color" value="#5865F2" style="height: 40px; cursor: pointer;" oninput="updateProfilePreview()">
+                            </div>
+                            <div class="settings-form-group">
+                                <label>Sobre Mim (Biografia)</label>
+                                <textarea id="input-bio" placeholder="Fale um pouco sobre você..." oninput="updateProfilePreview()"></textarea>
+                            </div>
+                            <button onclick="saveProfile()" style="background: #248046; border: none; color: white; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;">Salvar Alterações</button>
+                        </div>
+
+                        <div>
+                            <label style="color: #b5bac1; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; display: block;">Pré-visualização</label>
+                            <div class="discord-profile-preview">
+                                <div class="preview-banner" id="preview-banner-box"></div>
+                                <div class="preview-body">
+                                    <div class="preview-avatar-wrapper" id="preview-avatar-box">U</div>
+                                    <div class="preview-content">
+                                        <h4 id="preview-name" style="color: white; font-size: 16px;">Usuário</h4>
+                                        <p id="preview-username-small" style="color: #949ba4; font-size: 12px; margin-bottom: 10px;">@usuario</p>
+                                        <hr style="border: 0; border-top: 1px solid #3f4147; margin-bottom: 10px;">
+                                        <h5 style="color: #b5bac1; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">Sobre mim</h5>
+                                        <p id="preview-bio" style="color: #dbdee1; font-size: 13px; word-break: break-word;">Olá! Estou usando o Discord Clone.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let loggedUser = '';
+        let currentUserProfile = { displayName: '', bio: '', avatar: '', accentColor: '#5865F2' };
+        let currentRoom = '';
+        let currentFilter = 'online';
+        let globalFriendsData = { friends: [], pendingIncoming: [], pendingOutgoing: [] };
+        let currentServerData = null;
+
+        // Auto Login ao carregar página
+        window.addEventListener('load', () => {
+            const savedUser = localStorage.getItem('discord_logged_user');
+            if (savedUser) {
+                socket.emit('auto-login', { username: savedUser });
+            }
+        });
+
+        function login() {
+            const user = document.getElementById('username-input').value;
+            const pass = document.getElementById('password-input').value;
+            socket.emit('login', { username: user, password: pass });
+        }
+
+        function register() {
+            const user = document.getElementById('username-input').value;
+            const pass = document.getElementById('password-input').value;
+            socket.emit('register', { username: user, password: pass });
+        }
+
+        function logout() {
+            localStorage.removeItem('discord_logged_user');
+            location.reload();
+        }
+
+        socket.on('auth-response', (data) => {
+            if (data.success) {
+                if (data.username) {
+                    loggedUser = data.username;
+                    currentUserProfile = data.profile || { displayName: loggedUser, bio: '', avatar: '', accentColor: '#5865F2' };
+                    localStorage.setItem('discord_logged_user', loggedUser);
+                    
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('app-container').style.display = 'flex';
+                    
+                    updateUIAfterProfileChange();
+                    socket.emit('get-my-servers');
+                    openFriendsView();
+                } else {
+                    document.getElementById('auth-msg').style.color = '#3ba55d';
+                    document.getElementById('auth-msg').innerText = data.message;
+                }
+            } else {
+                document.getElementById('auth-msg').style.color = '#ed4245';
+                document.getElementById('auth-msg').innerText = data.message;
+            }
+        });
+
+        function updateUIAfterProfileChange() {
+            const displayName = currentUserProfile.displayName || loggedUser;
+            const avatarUrl = currentUserProfile.avatar;
+
+            document.getElementById('display-user').innerText = displayName;
+            document.getElementById('display-username-small').innerText = `@${loggedUser}`;
+            document.getElementById('settings-username-display').innerText = displayName;
+
+            const avatarContainer = document.getElementById('user-avatar-icon');
+            const settingsAvatar = document.getElementById('settings-avatar-preview');
+
+            if (avatarUrl && avatarUrl.trim() !== '') {
+                avatarContainer.innerHTML = `<img src="${avatarUrl}">`;
+                settingsAvatar.innerHTML = `<img src="${avatarUrl}">`;
+            } else {
+                avatarContainer.innerText = displayName[0].toUpperCase();
+                settingsAvatar.innerText = displayName[0].toUpperCase();
+            }
+
+            document.getElementById('input-display-name').value = displayName;
+            document.getElementById('input-avatar-url').value = avatarUrl || '';
+            document.getElementById('input-accent-color').value = currentUserProfile.accentColor || '#5865F2';
+            document.getElementById('input-bio').value = currentUserProfile.bio || '';
+
+            updateProfilePreview();
+        }
+
+        function updateProfilePreview() {
+            const name = document.getElementById('input-display-name').value || loggedUser;
+            const avatarUrl = document.getElementById('input-avatar-url').value;
+            const color = document.getElementById('input-accent-color').value;
+            const bio = document.getElementById('input-bio').value || 'Sem biografia.';
+
+            document.getElementById('preview-banner-box').style.backgroundColor = color;
+            document.getElementById('preview-name').innerText = name;
+            document.getElementById('preview-username-small').innerText = `@${loggedUser}`;
+            document.getElementById('preview-bio').innerText = bio;
+
+            const previewAvatar = document.getElementById('preview-avatar-box');
+            if (avatarUrl && avatarUrl.trim() !== '') {
+                previewAvatar.innerHTML = `<img src="${avatarUrl}">`;
+            } else {
+                previewAvatar.innerText = name[0].toUpperCase();
+            }
+        }
+
+        function saveProfile() {
+            const displayName = document.getElementById('input-display-name').value;
+            const avatar = document.getElementById('input-avatar-url').value;
+            const accentColor = document.getElementById('input-accent-color').value;
+            const bio = document.getElementById('input-bio').value;
+
+            socket.emit('update-profile', { displayName, avatar, accentColor, bio });
+        }
+
+        socket.on('profile-updated', (data) => {
+            alert(data.message);
+            if (data.profile) {
+                currentUserProfile = data.profile;
+                updateUIAfterProfileChange();
+            }
+        });
+
+        socket.on('update-friends-list', (data) => {
+            globalFriendsData = data;
+            if (currentRoom === '') renderFriendsView();
+        });
+
+        // Modais e Servidores
+        function openFriendsView() {
+            currentRoom = '';
+            currentServerData = null;
+            document.getElementById('server-title-text').innerText = 'Amigos';
+            document.getElementById('invite-btn-container').style.display = 'none';
+            document.getElementById('chat-box').innerHTML = '';
+            
+            document.getElementById('main-header').innerHTML = `
+                <div class="friends-nav">
+                    <span style="font-weight: bold; color: white; border-right: 1px solid #4f545c; padding-right: 15px;">👥 Amigos</span>
+                    <button class="friend-tab ${currentFilter === 'online' ? 'active' : ''}" onclick="filterFriends('online', this)">Online</button>
+                    <button class="friend-tab ${currentFilter === 'all' ? 'active' : ''}" onclick="filterFriends('all', this)">Todos</button>
+                    <button class="friend-tab ${currentFilter === 'pending' ? 'active' : ''}" onclick="filterFriends('pending', this)">Pendentes</button>
+                    <button class="friend-tab add-tab ${currentFilter === 'add' ? 'active' : ''}" onclick="filterFriends('add', this)">Adicionar Amigo</button>
+                </div>
+            `;
+            renderFriendsView();
+        }
+
+        function filterFriends(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.friend-tab').forEach(t => t.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            renderFriendsView();
+        }
+
+        function renderFriendsView() {
+            if (currentRoom !== '') return;
+            const chatBox = document.getElementById('chat-box');
+            
+            if (currentFilter === 'add') {
+                chatBox.innerHTML = `
+                    <div style="padding: 20px; max-width: 500px;">
+                        <h3 style="color: white; margin-bottom: 10px;">ADICIONAR AMIGO</h3>
+                        <p style="color: #b9bbbe; font-size: 14px; margin-bottom: 15px;">Você pode adicionar amigos pelo nome de usuário exato.</p>
+                        <div style="display: flex; background: #1e1f22; border-radius: 8px; padding: 10px; border: 1px solid #222;">
+                            <input type="text" id="add-friend-input" placeholder="Escreva o nome do usuário" style="background: transparent; border: none; color: white; outline: none; width: 100%;">
+                            <button onclick="sendFriendReq()" style="background: #5865F2; border: none; color: white; padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer;">Enviar Pedido</button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="friends-list-container">';
+            let list = [];
+
+            if (currentFilter === 'online') {
+                list = globalFriendsData.friends.filter(f => f.online);
+            } else if (currentFilter === 'all') {
+                list = globalFriendsData.friends;
+            } else if (currentFilter === 'pending') {
+                html += '<h4 style="color: white; margin-bottom: 10px;">Recebidos</h4>';
+                globalFriendsData.pendingIncoming.forEach(user => {
+                    html += `<div class="friend-item"><span style="color:white; font-weight:bold;">${user}</span><div><button onclick="acceptFriend('${user}')" style="background:#3ba55d; border:none; color:white; padding:5px 10px; border-radius:4px; cursor:pointer;">Aceitar</button> <button onclick="rejectFriend('${user}')" style="background:#ed4245; border:none; color:white; padding:5px 10px; border-radius:4px; cursor:pointer;">Recusar</button></div></div>`;
+                });
+                html += '<h4 style="color: white; margin: 20px 0 10px 0;">Enviados</h4>';
+                globalFriendsData.pendingOutgoing.forEach(user => {
+                    html += `<div class="friend-item"><span style="color:white; font-weight:bold;">${user}</span><span style="color:#b9bbbe; font-size:12px;">Pendente</span></div>`;
+                });
+                html += '</div>';
+                chatBox.innerHTML = html;
+                return;
+            }
+
+            if (list.length === 0) {
+                chatBox.innerHTML = '<p style="color: #b9bbbe; padding: 20px;">Nenhum amigo encontrado nesta categoria.</p>';
+                return;
+            }
+
+            list.forEach(f => {
+                const avatarContent = f.avatar ? `<img src="${f.avatar}">` : f.displayName[0].toUpperCase();
+                html += `
+                    <div class="friend-item">
+                        <div class="friend-info">
+                            <div class="user-avatar">${avatarContent}</div>
+                            <div>
+                                <div style="color: white; font-weight: bold;">${f.displayName}</div>
+                                <div style="color: #b9bbbe; font-size: 12px;">${f.online ? 'Online' : 'Offline'}</div>
+                            </div>
+                        </div>
+                        <div class="status-dot ${f.online ? 'status-online' : 'status-offline'}"></div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            chatBox.innerHTML = html;
+        }
+
+        function sendFriendReq() {
+            const target = document.getElementById('add-friend-input').value.trim();
+            if (target) socket.emit('send-friend-request', target);
+        }
+
+        function acceptFriend(user) { socket.emit('accept-friend', user); }
+        function rejectFriend(user) { socket.emit('reject-friend', user); }
+
+        socket.on('friend-action-response', (res) => { alert(res.message); });
+
+        // Servidores UI
+        function openServerOptionsModal() { document.getElementById('server-options-modal').style.display = 'flex'; }
+        function closeServerOptionsModal() { document.getElementById('server-options-modal').style.display = 'none'; }
+        
+        function openCreateServerModal() {
+            closeServerOptionsModal();
+            document.getElementById('create-server-modal').style.display = 'flex';
+        }
+        function closeCreateServerModal() { document.getElementById('create-server-modal').style.display = 'none'; }
+        
+        function confirmCreateServer() {
+            const name = document.getElementById('modal-server-name-input').value.trim();
+            if (name) {
+                socket.emit('create-server', { serverName: name });
+                closeCreateServerModal();
+            }
+        }
+
+        function openJoinServerModal() {
+            closeServerOptionsModal();
+            document.getElementById('join-server-modal').style.display = 'flex';
+        }
+        function closeJoinServerModal() { document.getElementById('join-server-modal').style.display = 'none'; }
+
+        function confirmJoinServer() {
+            const code = document.getElementById('modal-invite-input').value.trim();
+            if (code) {
+                socket.emit('join-server-invite', { inviteCode: code });
+                closeJoinServerModal();
+            }
+        }
+
+        socket.on('server-created', (server) => { addServerIcon(server); });
+        socket.on('server-joined', (server) => { addServerIcon(server); });
+
+        socket.on('load-servers', (servers) => {
+            servers.forEach(srv => addServerIcon(srv));
+        });
+
+        function addServerIcon(server) {
+            const container = document.getElementById('servers-container');
+            if (document.getElementById(`srv_${server.id}`)) return;
+
+            const div = document.createElement('div');
+            div.className = 'server-icon';
+            div.id = `srv_${server.id}`;
+            div.title = server.name;
+            div.innerText = server.name[0].toUpperCase();
+            div.onclick = () => selectServer(server);
+            container.insertBefore(div, container.lastElementChild);
+        }
+
+        function selectServer(server) {
+            currentServerData = server;
+            document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
+            const sEl = document.getElementById(`srv_${server.id}`);
+            if (sEl) sEl.classList.add('active');
+
+            document.getElementById('server-title-text').innerText = server.name;
+            document.getElementById('invite-btn-container').style.display = 'block';
+
+            const channelsList = document.getElementById('sidebar-channels');
+            channelsList.innerHTML = `<div class="channel-category">Canais de Texto</div>`;
+            
+            server.channels.forEach(ch => {
+                channelsList.innerHTML += `<button class="channel-btn" onclick="selectChannel('${ch}')"># ${ch}</button>`;
+            });
+
+            if (server.channels.length > 0) {
+                selectChannel(server.channels[0]);
+            }
+        }
+
+        function selectChannel(channelName) {
+            currentRoom = `${currentServerData.id}_${channelName}`;
+            socket.emit('join-room', currentRoom);
+
+            document.querySelectorAll('.channel-btn').forEach(btn => btn.classList.remove('active'));
+            // simple match for visual active
+            event.target.classList.add('active');
+
+            document.getElementById('main-header').innerHTML = `<span style="color:white;"># ${channelName}</span>`;
+            document.getElementById('chat-box').innerHTML = '';
+        }
+
+        function openInviteModal() {
+            if (!currentServerData) return;
+            document.getElementById('server-invite-code-display').value = currentServerData.inviteCode;
+            document.getElementById('invite-modal').style.display = 'flex';
+        }
+        function closeInviteModal() { document.getElementById('invite-modal').style.display = 'none'; }
+
+        function openSettingsModal() { document.getElementById('settings-modal').style.display = 'block'; }
+        function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
+
+        function switchSettingsTab(tabName, btn) {
+            document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+
+            document.getElementById('settings-tab-account').style.display = tabName === 'account' ? 'block' : 'none';
+            document.getElementById('settings-tab-profile').style.display = tabName === 'profile' ? 'block' : 'none';
+        }
+
+        // Chat Send / Receive
+        const chatInput = document.getElementById('chat-input');
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim() !== '') {
+                const roomTarget = currentRoom || 'geral';
+                socket.emit('chat-message', { room: roomTarget, text: chatInput.value });
+                chatInput.value = '';
+            }
+        });
+
+        socket.on('chat-message', (data) => {
+            const chatBox = document.getElementById('chat-box');
+            const avatarContent = data.avatar ? `<img src="${data.avatar}">` : data.displayName[0].toUpperCase();
+            
+            chatBox.innerHTML += `
+                <div class="message-group">
+                    <div class="message-avatar">${avatarContent}</div>
+                    <div class="message-content-wrapper">
+                        <div class="message-header">
+                            <span class="message-username">${data.displayName}</span>
+                            <span class="message-timestamp">Hoje às 00:00</span>
+                        </div>
+                        <div class="message-text">${data.text}</div>
+                    </div>
+                </div>
+            `;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        function disconnectVoice() {
+            alert('Desconectado da voz.');
+        }
+    </script>
+</body>
+</html>
