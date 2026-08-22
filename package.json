@@ -1,24 +1,12 @@
 {
-  "name": "clone-discord",
+  "name": "discord-clone-backend",
   "version": "1.0.0",
-  "description": "Meu app de chat e voz",
-  "main": "main.js",
+  "main": "server.js",
   "scripts": {
-    "start": "electron .",
-    "build": "electron-builder"
-  },
-  "build": {
-    "appId": "com.seu-nome.clonediscord",
-    "win": {
-      "target": "nsis"
-    }
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.7.2"
-  },
-  "devDependencies": {
-    "electron": "^29.0.0",
-    "electron-builder": "^24.9.1"
   }
 }
